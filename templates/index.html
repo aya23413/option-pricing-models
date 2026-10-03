@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+
+
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Valorisation · PricingLab</title>
+
+
+
+    <link
+
+        rel="stylesheet"
+
+        href="{{ url_for('static', filename='style.css') }}"
+
+    >
+
+
+<style>
+.crr-tree-section {
+    margin-top: 28px;
+}
+
+.crr-tree-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.crr-tree-header h2 {
+    margin: 4px 0 6px;
+}
+
+.crr-tree-header p {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.crr-params-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.crr-param-card,
+.crr-comparison-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.crr-param-card span,
+.crr-comparison-card span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.crr-param-card strong,
+.crr-comparison-card strong {
+    font-size: 16px;
+}
+
+.crr-svg-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    overflow-x: auto;
+}
+
+.crr-svg {
+    display: block;
+    width: 100%;
+    min-width: 800px;
+    height: auto;
+}
+
+.crr-branch {
+    stroke: #cbd5e1;
+    stroke-width: 2.2;
+}
+
+.crr-node-circle {
+    fill: #ffffff;
+    stroke: #3157d5;
+    stroke-width: 2.5;
+}
+
+.crr-maturity-circle {
+    fill: #f8fafc;
+    stroke: #16a36a;
+    stroke-width: 2.5;
+}
+
+.crr-node-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #18212f;
+    text-anchor: middle;
+}
+
+.crr-node-value {
+    font-size: 12px;
+    fill: #3157d5;
+    text-anchor: middle;
+}
+
+.crr-node-payoff {
+    font-size: 12px;
+    fill: #16a36a;
+    text-anchor: middle;
+}
+
+.crr-time-label {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #64748b;
+    text-anchor: middle;
+}
+
+.crr-branch-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #64748b;
+}
+
+.crr-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.crr-explanation {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+@media (max-width: 1050px) {
+    .crr-params-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .crr-tree-header {
+        flex-direction: column;
+    }
+
+    .crr-params-grid,
+    .crr-comparison-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+</head>
+
+
+
+<body>
+
+
+
+<div class="app-container">
+
+
+
+    <aside class="sidebar">
+
+
+
+        <div class="brand">
+
+            <div class="brand-icon">P</div>
+
+
+
+            <div>
+
+                <div class="brand-name">PricingLab</div>
+
+                <div class="brand-subtitle">Finance quantitative</div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="menu-title">ANALYSE</div>
+
+
+
+        <nav class="navigation">
+
+
+
+            <a
+
+                href="{{ url_for('index') }}"
+
+                class="nav-item active"
+
+            >
+
+                <span class="nav-icon">◈</span>
+
+                Valorisation
+
+            </a>
+
+
+
+            <a
+
+                href="{{ url_for('convergence') }}"
+
+                class="nav-item"
+
+            >
+
+                <span class="nav-icon">↗</span>
+
+                Convergence
+
+            </a>
+
+
+
+            <a
+
+                href="{{ url_for('scenarios') }}"
+
+                class="nav-item"
+
+            >
+
+                <span class="nav-icon">◫</span>
+
+                Scénarios de marché
+
+            </a>
+
+
+
+        </nav>
+
+
+
+        <div class="sidebar-info">
+
+            <div class="sidebar-info-title">Modèles disponibles</div>
+
+            <div class="model-small">Cox-Ross-Rubinstein</div>
+
+            <div class="model-small">Jarrow-Rudd</div>
+
+            <div class="model-small">Tian</div>
+
+            <div class="model-small">Boyle</div>
+
+            {% if form_data.exercise_type == "european" %}
+            <div class="model-small">Black-Scholes · Européenne</div>
+            {% endif %}
+
+        </div>
+
+
+
+    </aside>
+
+
+    <main class="main-content">
+
+
+
+        <header class="page-header">
+
+
+
+            <div>
+
+                <div class="page-label">EXPLORATEUR DE MODÈLES DE VALORISATION</div>
+
+
+
+                <h1>Valorisation des options</h1>
+
+
+
+                <p class="page-description">
+
+                    Comparez les modèles binomiaux et trinomiaux pour
+
+                    valoriser une option vanille et analyser leurs résultats.
+
+                </p>
+
+            </div>
+
+
+
+            <div class="status">
+
+                <span class="status-dot"></span>
+
+                Moteur de calcul prêt
+
+            </div>
+
+
+
+        </header>
+
+
+        {% if error_message %}
+
+
+
+        <div class="error-box">
+
+            <div class="error-icon">!</div>
+
+
+
+            <div>
+
+                <strong>Impossible d'effectuer la valorisation</strong>
+
+                <p>{{ error_message }}</p>
+
+            </div>
+
+        </div>
+
+
+
+        {% endif %}
+
+
+        <section class="card parameters-card">
+
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2>Paramètres de l'option</h2>
+
+                    <p>
+
+                        Définissez les caractéristiques du contrat et
+
+                        les paramètres de marché.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form method="POST">
+
+
+
+                <div class="form-grid">
+
+
+
+                    <div class="form-group">
+
+                        <label>Prix du sous-jacent</label>
+
+
+
+                        <div class="input-wrapper">
+
+                            <input
+
+                                type="number"
+
+                                name="S0"
+
+                                step="0.01"
+
+                                min="0.01"
+
+                                value="{{ form_data.S0 }}"
+
+                                required
+
+                            >
+
+                            <span class="input-unit">S₀</span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Prix d'exercice</label>
+
+
+
+                        <div class="input-wrapper">
+
+                            <input
+
+                                type="number"
+
+                                name="K"
+
+                                step="0.01"
+
+                                min="0.01"
+
+                                value="{{ form_data.K }}"
+
+                                required
+
+                            >
+
+                            <span class="input-unit">K</span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Maturité</label>
+
+
+
+                        <div class="input-wrapper">
+
+                            <input
+
+                                type="number"
+
+                                name="T"
+
+                                step="0.01"
+
+                                min="0.01"
+
+                                value="{{ form_data.T }}"
+
+                                required
+
+                            >
+
+                            <span class="input-unit">année(s)</span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Taux sans risque</label>
+
+
+
+                        <div class="input-wrapper">
+
+                            <input
+
+                                type="number"
+
+                                name="r"
+
+                                step="0.01"
+
+                                value="{{ form_data.r }}"
+
+                                required
+
+                            >
+
+                            <span class="input-unit">%</span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Volatilité</label>
+
+
+
+                        <div class="input-wrapper">
+
+                            <input
+
+                                type="number"
+
+                                name="sigma"
+
+                                step="0.01"
+
+                                min="0.01"
+
+                                value="{{ form_data.sigma }}"
+
+                                required
+
+                            >
+
+                            <span class="input-unit">%</span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Nombre de pas</label>
+
+
+
+                        <div class="input-wrapper">
+
+                            <input
+
+                                type="number"
+
+                                name="N"
+
+                                step="1"
+
+                                min="1"
+
+                                value="{{ form_data.N }}"
+
+                                required
+
+                            >
+
+                            <span class="input-unit">N</span>
+
+                        </div>
+
+                    </div>
+
+
+
+                </div>
+
+
+                <div class="choices-container">
+
+
+
+                    <div class="choice-block">
+
+
+
+                        <div class="choice-label">Type d'option</div>
+
+
+
+                        <div class="segmented-control">
+
+
+
+                            <label>
+
+                                <input
+
+                                    type="radio"
+
+                                    name="option_type"
+
+                                    value="call"
+
+                                    {% if form_data.option_type == "call" %}checked{% endif %}
+
+                                >
+
+                                <span>Call</span>
+
+                            </label>
+
+
+
+                            <label>
+
+                                <input
+
+                                    type="radio"
+
+                                    name="option_type"
+
+                                    value="put"
+
+                                    {% if form_data.option_type == "put" %}checked{% endif %}
+
+                                >
+
+                                <span>Put</span>
+
+                            </label>
+
+
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="choice-block">
+
+
+
+                        <div class="choice-label">Style d'exercice</div>
+
+
+
+                        <div class="segmented-control">
+
+
+
+                            <label>
+
+                                <input
+
+                                    type="radio"
+
+                                    name="exercise_type"
+
+                                    value="european"
+
+                                    {% if form_data.exercise_type == "european" %}checked{% endif %}
+
+                                >
+
+                                <span>Européenne</span>
+
+                            </label>
+
+
+
+                            <label>
+
+                                <input
+
+                                    type="radio"
+
+                                    name="exercise_type"
+
+                                    value="american"
+
+                                    {% if form_data.exercise_type == "american" %}checked{% endif %}
+
+                                >
+
+                                <span>Américaine</span>
+
+                            </label>
+
+
+
+                        </div>
+
+                    </div>
+
+
+
+                </div>
+
+
+                <button
+
+                    type="submit"
+
+                    class="calculate-button"
+
+                >
+
+                    Calculer les prix
+
+                </button>
+
+
+
+            </form>
+
+
+
+        </section>
+
+
+        {% if results %}
+
+
+
+        <section class="results-section">
+
+
+
+            <div class="results-header">
+
+                <div>
+
+                    <h2>Résultats de la valorisation</h2>
+
+                    <p>
+
+                        Comparaison des modèles pour les paramètres sélectionnés.
+
+                    </p>
+
+                </div>
+
+
+
+                <div class="option-badge">
+
+                    {{ form_data.option_type | upper }}
+
+                    ·
+
+                    {{ "EUROPÉENNE" if form_data.exercise_type == "european" else "AMÉRICAINE" }}
+
+                </div>
+
+            </div>
+
+
+            {% if form_data.exercise_type == "european" and results.black_scholes %}
+
+
+
+            <div class="reference-card">
+
+
+
+                <div>
+
+                    <div class="reference-label">RÉFÉRENCE ANALYTIQUE</div>
+
+                    <div class="reference-title">Black-Scholes</div>
+
+                    <div class="reference-description">
+
+                        Prix de référence pour l'option européenne.
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="reference-price">
+
+                    <div class="reference-price-label">Prix</div>
+
+                    {{ "%.6f"|format(results.black_scholes.price) }}
+
+                </div>
+
+
+
+            </div>
+
+
+
+            {% endif %}
+
+
+            <div class="results-grid">
+
+
+
+                {% for key in ["crr", "jr", "tian", "boyle"] %}
+
+                {% set result = results[key] %}
+
+
+
+                <article class="result-card">
+
+
+
+                    <div class="result-top">
+
+                        <div>
+
+                            <div class="model-type">
+
+                                {% if key == "boyle" %}
+
+                                    Modèle trinomial
+
+                                {% else %}
+
+                                    Modèle binomial
+
+                                {% endif %}
+
+                            </div>
+
+
+
+                            <h3>{{ result.name }}</h3>
+
+                        </div>
+
+
+
+                        <div class="model-icon">
+
+                            {% if key == "boyle" %}T{% else %}B{% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="result-price-label">Prix de l'option</div>
+
+
+
+                    <div class="result-price">
+
+                        {{ "%.6f"|format(result.price) }}
+
+                    </div>
+
+
+                    <div class="result-details">
+
+
+
+                        <div>
+
+                            <span>Temps de calcul</span>
+
+                            <strong>
+
+                                {{ "%.4f"|format(result.time * 1000) }} ms
+
+                            </strong>
+
+                        </div>
+
+
+
+                        {% if form_data.exercise_type == "european" and result.error is defined %}
+
+                        <div>
+
+                            <span>Erreur absolue</span>
+
+                            <strong>
+
+                                {{ "%.6f"|format(result.error) }}
+
+                            </strong>
+
+                        </div>
+
+                        {% endif %}
+
+
+
+                    </div>
+
+
+
+                </article>
+
+
+
+                {% endfor %}
+
+
+
+            </div>
+
+
+
+        </section>
+
+
+        
+
+        {% if crr_tree %}
+
+        <section class="crr-tree-section">
+
+            <div class="crr-tree-header">
+                <div>
+                    <div class="page-label">VISUALISATION DU MODÈLE</div>
+                    <h2>Arbre de Cox-Ross-Rubinstein — N = 2</h2>
+                    <p>
+                        Visualisation du sous-jacent et de la valeur de l'option
+                        à chaque nœud.
+                    </p>
+                </div>
+
+                <div class="option-badge">
+                    {{ form_data.option_type | upper }}
+                    ·
+                    {{ "EUROPÉENNE" if form_data.exercise_type == "european" else "AMÉRICAINE" }}
+                </div>
+            </div>
+
+            <div class="crr-params-grid">
+
+                <div class="crr-param-card">
+                    <span>Pas de temps Δt</span>
+                    <strong>{{ "%.6f"|format(crr_tree.parameters.dt) }}</strong>
+                </div>
+
+                <div class="crr-param-card">
+                    <span>Facteur de hausse u</span>
+                    <strong>{{ "%.6f"|format(crr_tree.parameters.u) }}</strong>
+                </div>
+
+                <div class="crr-param-card">
+                    <span>Facteur de baisse d</span>
+                    <strong>{{ "%.6f"|format(crr_tree.parameters.d) }}</strong>
+                </div>
+
+                <div class="crr-param-card">
+                    <span>Probabilité de hausse p</span>
+                    <strong>{{ "%.6f"|format(crr_tree.parameters.p) }}</strong>
+                </div>
+
+                <div class="crr-param-card">
+                    <span>Probabilité de baisse q</span>
+                    <strong>{{ "%.6f"|format(crr_tree.parameters.q) }}</strong>
+                </div>
+
+                <div class="crr-param-card">
+                    <span>Facteur d'actualisation</span>
+                    <strong>{{ "%.6f"|format(crr_tree.parameters.discount) }}</strong>
+                </div>
+
+            </div>
+
+            <div class="crr-svg-card">
+
+                <svg
+                    class="crr-svg"
+                    viewBox="0 0 1000 520"
+                    role="img"
+                    aria-label="Arbre binomial CRR à deux périodes"
+                >
+
+                    <text x="120" y="28" class="crr-time-label">t = 0</text>
+                    <text x="500" y="28" class="crr-time-label">t = 1</text>
+                    <text x="880" y="28" class="crr-time-label">t = 2</text>
+
+                    <line x1="175" y1="250" x2="440" y2="145" class="crr-branch"/>
+                    <line x1="175" y1="250" x2="440" y2="355" class="crr-branch"/>
+
+                    <line x1="560" y1="145" x2="820" y2="75" class="crr-branch"/>
+                    <line x1="560" y1="145" x2="820" y2="250" class="crr-branch"/>
+
+                    <line x1="560" y1="355" x2="820" y2="250" class="crr-branch"/>
+                    <line x1="560" y1="355" x2="820" y2="425" class="crr-branch"/>
+
+                    <text x="295" y="176" class="crr-branch-label">u</text>
+                    <text x="295" y="332" class="crr-branch-label">d</text>
+                    <text x="690" y="95" class="crr-branch-label">u</text>
+                    <text x="690" y="214" class="crr-branch-label">d</text>
+                    <text x="690" y="314" class="crr-branch-label">u</text>
+                    <text x="690" y="414" class="crr-branch-label">d</text>
+
+                    <circle cx="120" cy="250" r="62" class="crr-node-circle"/>
+                    <text x="120" y="232" class="crr-node-title">
+                        S = {{ "%.2f"|format(crr_tree.stock_tree[0][0]) }}
+                    </text>
+                    <text x="120" y="257" class="crr-node-value">
+                        V = {{ "%.4f"|format(crr_tree.option_tree[0][0]) }}
+                    </text>
+                    <text x="120" y="280" class="crr-node-value">Racine</text>
+
+                    <circle cx="500" cy="145" r="62" class="crr-node-circle"/>
+                    <text x="500" y="128" class="crr-node-title">
+                        S = {{ "%.2f"|format(crr_tree.stock_tree[1][1]) }}
+                    </text>
+                    <text x="500" y="153" class="crr-node-value">
+                        V = {{ "%.4f"|format(crr_tree.option_tree[1][1]) }}
+                    </text>
+                    <text x="500" y="176" class="crr-node-value">Hausse</text>
+
+                    <circle cx="500" cy="355" r="62" class="crr-node-circle"/>
+                    <text x="500" y="338" class="crr-node-title">
+                        S = {{ "%.2f"|format(crr_tree.stock_tree[1][0]) }}
+                    </text>
+                    <text x="500" y="363" class="crr-node-value">
+                        V = {{ "%.4f"|format(crr_tree.option_tree[1][0]) }}
+                    </text>
+                    <text x="500" y="386" class="crr-node-value">Baisse</text>
+
+                    <circle cx="880" cy="75" r="62" class="crr-maturity-circle"/>
+                    <text x="880" y="58" class="crr-node-title">
+                        S = {{ "%.2f"|format(crr_tree.stock_tree[2][2]) }}
+                    </text>
+                    <text x="880" y="83" class="crr-node-payoff">
+                        Payoff = {{ "%.4f"|format(crr_tree.maturity_payoffs[2]) }}
+                    </text>
+                    <text x="880" y="106" class="crr-node-payoff">u · u</text>
+
+                    <circle cx="880" cy="250" r="62" class="crr-maturity-circle"/>
+                    <text x="880" y="233" class="crr-node-title">
+                        S = {{ "%.2f"|format(crr_tree.stock_tree[2][1]) }}
+                    </text>
+                    <text x="880" y="258" class="crr-node-payoff">
+                        Payoff = {{ "%.4f"|format(crr_tree.maturity_payoffs[1]) }}
+                    </text>
+                    <text x="880" y="281" class="crr-node-payoff">u · d</text>
+
+                    <circle cx="880" cy="425" r="62" class="crr-maturity-circle"/>
+                    <text x="880" y="408" class="crr-node-title">
+                        S = {{ "%.2f"|format(crr_tree.stock_tree[2][0]) }}
+                    </text>
+                    <text x="880" y="433" class="crr-node-payoff">
+                        Payoff = {{ "%.4f"|format(crr_tree.maturity_payoffs[0]) }}
+                    </text>
+                    <text x="880" y="456" class="crr-node-payoff">d · d</text>
+
+                </svg>
+
+            </div>
+
+            <div class="crr-comparison-grid">
+
+                <div class="crr-comparison-card">
+                    <span>Prix CRR avec N = 2</span>
+                    <strong>{{ "%.6f"|format(crr_tree.price_small) }}</strong>
+                </div>
+
+                <div class="crr-comparison-card">
+                    <span>Prix CRR avec N = {{ crr_tree.N_large }}</span>
+                    <strong>{{ "%.6f"|format(crr_tree.price_large) }}</strong>
+                </div>
+
+                <div class="crr-comparison-card">
+                    <span>Écart absolu</span>
+                    <strong>{{ "%.6f"|format(crr_tree.difference) }}</strong>
+                </div>
+
+            </div>
+
+            <div class="crr-explanation">
+                La valeur de chaque nœud intermédiaire est obtenue par induction
+                rétrograde. Pour une option américaine, la valeur du nœud est le
+                maximum entre la valeur de continuation et la valeur d'exercice
+                immédiat.
+            </div>
+
+        </section>
+
+        {% endif %}
+
+
+        {% else %}
+
+
+
+        <section class="empty-state">
+
+
+
+            <div class="empty-icon">◈</div>
+
+
+
+            <h2>Prêt pour la valorisation</h2>
+
+
+
+            <p>
+
+                Renseignez les paramètres de l'option puis lancez le calcul
+
+                pour comparer les différents modèles.
+
+            </p>
+
+
+
+        </section>
+
+
+
+        {% endif %}
+
+
+        <footer>
+
+            PricingLab · Analyse quantitative des options vanilles
+
+        </footer>
+
+
+
+    </main>
+
+
+
+</div>
+
+
+
+</body>
+
+</html>

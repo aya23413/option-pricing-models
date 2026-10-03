@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convergence · PricingLab</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-icon">P</div>
+
+            <div>
+                <div class="brand-name">PricingLab</div>
+                <div class="brand-subtitle">Finance quantitative</div>
+            </div>
+        </div>
+
+        <div class="menu-title">ANALYSE</div>
+
+        <nav class="navigation">
+
+            <a
+                href="{{ url_for('index') }}"
+                class="nav-item"
+            >
+                <span class="nav-icon">◈</span>
+                Valorisation
+            </a>
+
+            <a
+                href="{{ url_for('convergence') }}"
+                class="nav-item active"
+            >
+                <span class="nav-icon">↗</span>
+                Convergence
+            </a>
+
+            <a
+                href="{{ url_for('scenarios') }}"
+                class="nav-item"
+            >
+                <span class="nav-icon">◫</span>
+                Scénarios de marché
+            </a>
+
+        </nav>
+
+        <div class="sidebar-info">
+            <div class="sidebar-info-title">Étude numérique</div>
+            <div class="model-small">Prix selon N</div>
+            <div class="model-small">Erreur absolue</div>
+            <div class="model-small">Temps de calcul</div>
+        </div>
+
+    </aside>
+
+
+    <main class="main-content">
+
+        <header class="page-header">
+
+            <div>
+                <div class="page-label">ANALYSE NUMÉRIQUE</div>
+
+                <h1>Étude de convergence</h1>
+
+                <p class="page-description">
+                    Comparez la convergence et les performances des modèles
+                    lorsque le nombre de pas augmente.
+                </p>
+            </div>
+
+            <div class="status">
+                <span class="status-dot"></span>
+                Moteur de calcul prêt
+            </div>
+
+        </header>
+
+
+        {% if error_message %}
+
+        <div class="error-box">
+            <div class="error-icon">!</div>
+
+            <div>
+                <strong>Impossible d'effectuer l'analyse</strong>
+                <p>{{ error_message }}</p>
+            </div>
+        </div>
+
+        {% endif %}
+
+
+        <section class="card parameters-card">
+
+            <div class="section-header">
+                <div>
+                    <h2>Paramètres de l'étude</h2>
+                    <p>
+                        Calculs effectués pour
+                        N = 5, 10, 25, 50, 100, 200 et 500.
+                    </p>
+                </div>
+            </div>
+
+
+            <form method="POST">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label>Prix du sous-jacent</label>
+                        <div class="input-wrapper">
+                            <input
+                                type="number"
+                                name="S0"
+                                step="0.01"
+                                min="0.01"
+                                value="{{ form_data.S0 }}"
+                                required
+                            >
+                            <span class="input-unit">S₀</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Prix d'exercice</label>
+                        <div class="input-wrapper">
+                            <input
+                                type="number"
+                                name="K"
+                                step="0.01"
+                                min="0.01"
+                                value="{{ form_data.K }}"
+                                required
+                            >
+                            <span class="input-unit">K</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Maturité</label>
+                        <div class="input-wrapper">
+                            <input
+                                type="number"
+                                name="T"
+                                step="0.01"
+                                min="0.01"
+                                value="{{ form_data.T }}"
+                                required
+                            >
+                            <span class="input-unit">année(s)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Taux sans risque</label>
+                        <div class="input-wrapper">
+                            <input
+                                type="number"
+                                name="r"
+                                step="0.01"
+                                value="{{ form_data.r }}"
+                                required
+                            >
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Volatilité</label>
+                        <div class="input-wrapper">
+                            <input
+                                type="number"
+                                name="sigma"
+                                step="0.01"
+                                min="0.01"
+                                value="{{ form_data.sigma }}"
+                                required
+                            >
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="choices-container">
+
+                    <div class="choice-block">
+                        <div class="choice-label">Type d'option</div>
+
+                        <div class="segmented-control">
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="option_type"
+                                    value="call"
+                                    {% if form_data.option_type == "call" %}checked{% endif %}
+                                >
+                                <span>Call</span>
+                            </label>
+
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="option_type"
+                                    value="put"
+                                    {% if form_data.option_type == "put" %}checked{% endif %}
+                                >
+                                <span>Put</span>
+                            </label>
+                        </div>
+                    </div>
+
+
+                    <div class="choice-block">
+                        <div class="choice-label">Style d'exercice</div>
+
+                        <div class="segmented-control">
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="exercise_type"
+                                    value="european"
+                                    {% if form_data.exercise_type == "european" %}checked{% endif %}
+                                >
+                                <span>Européenne</span>
+                            </label>
+
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="exercise_type"
+                                    value="american"
+                                    {% if form_data.exercise_type == "american" %}checked{% endif %}
+                                >
+                                <span>Américaine</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <button type="submit" class="calculate-button">
+                    Lancer l'analyse
+                </button>
+
+            </form>
+
+        </section>
+
+
+        {% if results_dict %}
+
+            {% if form_data.exercise_type == "european" %}
+
+            <div class="reference-card convergence-reference">
+                <div>
+                    <div class="reference-label">VALEUR DE RÉFÉRENCE</div>
+                    <div class="reference-title">Black-Scholes</div>
+                    <div class="reference-description">
+                        Référence analytique utilisée pour mesurer
+                        l'erreur des méthodes numériques.
+                    </div>
+                </div>
+
+                <div class="reference-price">
+                    <div class="reference-price-label">Prix</div>
+                    <strong>{{ "%.6f"|format(reference_price) }}</strong>
+                </div>
+            </div>
+
+            {% endif %}
+
+
+            <section class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <h2>Convergence des prix</h2>
+                        <p>Évolution du prix lorsque N augmente.</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </section>
+
+
+            {% if form_data.exercise_type == "european" %}
+
+            <section class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <h2>Erreur absolue</h2>
+                        <p>
+                            Écart entre les modèles numériques
+                            et la référence analytique.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="errorChart"></canvas>
+                </div>
+            </section>
+
+            {% endif %}
+
+
+            <section class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <h2>Performance de calcul</h2>
+                        <p>Temps médian de calcul pour chaque valeur de N.</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </section>
+
+
+            <section class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <h2>Résultats numériques</h2>
+                        <p>Détail des résultats pour chaque méthode.</p>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Méthode</th>
+                                <th>N</th>
+                                <th>Prix</th>
+
+                                {% if form_data.exercise_type == "european" %}
+                                <th>Erreur absolue</th>
+                                {% endif %}
+
+                                <th>Temps médian</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for method, method_results in results_dict.items() %}
+                                {% for row in method_results %}
+                                <tr>
+                                    <td><strong>{{ method }}</strong></td>
+                                    <td>{{ row.N }}</td>
+                                    <td>{{ "%.6f"|format(row.Prix) }}</td>
+
+                                    {% if form_data.exercise_type == "european" %}
+                                    <td>{{ "%.6f"|format(row.Erreur) }}</td>
+                                    {% endif %}
+
+                                    <td>{{ "%.3f"|format(row.Temps * 1000) }} ms</td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+
+            <div
+                id="convergence-data"
+                data-results='{{ results_dict | tojson | forceescape }}'
+                data-reference='{{ reference_price | tojson | forceescape }}'
+                data-european='{{ "true" if form_data.exercise_type == "european" else "false" }}'
+                data-reference-label='{{ "Black-Scholes" if form_data.exercise_type == "european" else "" }}'
+                hidden>
+            </div>
+
+            <script>
+                const convergenceElement =
+                    document.getElementById("convergence-data");
+
+                const convergenceData =
+                    JSON.parse(convergenceElement.dataset.results);
+
+                const isEuropean =
+                    convergenceElement.dataset.european === "true";
+
+                const nValues =
+                    convergenceData["CRR"].map(row => row.N);
+
+                const chartColors = {
+                    "CRR": "#3157d5",
+                    "Jarrow-Rudd": "#16a36a",
+                    "Tian": "#d97706",
+                    "Boyle": "#8b5cf6"
+                };
+
+                const priceDatasets =
+                    Object.entries(convergenceData).map(
+                        ([method, rows]) => ({
+                            label: method,
+                            data: rows.map(row => row.Prix),
+                            borderColor: chartColors[method],
+                            backgroundColor: chartColors[method],
+                            tension: 0.2,
+                            pointRadius: 4,
+                            fill: false
+                        })
+                    );
+
+                if (isEuropean) {
+                    const referencePrice =
+                        JSON.parse(convergenceElement.dataset.reference);
+
+                    priceDatasets.push({
+                        label: convergenceElement.dataset.referenceLabel,
+                        data: nValues.map(() => referencePrice),
+                        borderColor: "#98a2b3",
+                        borderDash: [7, 6],
+                        pointRadius: 0,
+                        fill: false
+                    });
+                }
+
+                new Chart(
+                    document.getElementById("priceChart"),
+                    {
+                        type: "line",
+                        data: {
+                            labels: nValues,
+                            datasets: priceDatasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: "bottom"
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: "Nombre de pas N"
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: "Prix de l'option"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+
+                const errorCanvas =
+                    document.getElementById("errorChart");
+
+                if (isEuropean && errorCanvas) {
+                    new Chart(
+                        errorCanvas,
+                        {
+                            type: "line",
+                            data: {
+                                labels: nValues,
+                                datasets:
+                                    Object.entries(convergenceData).map(
+                                        ([method, rows]) => ({
+                                            label: method,
+                                            data: rows.map(row => row.Erreur),
+                                            borderColor: chartColors[method],
+                                            backgroundColor: chartColors[method],
+                                            tension: 0.2,
+                                            pointRadius: 4,
+                                            fill: false
+                                        })
+                                    )
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: "bottom"
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: "Nombre de pas N"
+                                        }
+                                    },
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: "Erreur absolue"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    );
+                }
+
+                new Chart(
+                    document.getElementById("timeChart"),
+                    {
+                        type: "line",
+                        data: {
+                            labels: nValues,
+                            datasets:
+                                Object.entries(convergenceData).map(
+                                    ([method, rows]) => ({
+                                        label: method,
+                                        data: rows.map(
+                                            row => row.Temps * 1000
+                                        ),
+                                        borderColor: chartColors[method],
+                                        backgroundColor: chartColors[method],
+                                        tension: 0.2,
+                                        pointRadius: 4,
+                                        fill: false
+                                    })
+                                )
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: "bottom"
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: "Nombre de pas N"
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: "Temps médian (ms)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+            </script>
+
+        {% else %}
+
+            <section class="empty-state">
+                <div class="empty-icon">↗</div>
+
+                <h2>Analyse de convergence</h2>
+
+                <p>
+                    Configurez les paramètres puis lancez l'analyse
+                    pour comparer les modèles selon le nombre de pas.
+                </p>
+            </section>
+
+        {% endif %}
+
+
+        <footer>
+            PricingLab · Analyse quantitative des options vanilles
+        </footer>
+
+    </main>
+
+</div>
+
+</body>
+</html>

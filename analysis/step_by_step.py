@@ -1,4 +1,5 @@
 import math
+
 from pricing.binomial_crr import crr_price
 
 
@@ -14,8 +15,8 @@ def crr_step_by_step(
     exercise_type="european"
 ):
     """
-    Affiche les calculs détaillés du CRR pour un petit N,
-    puis compare le résultat au prix CRR pour un grand N.
+    Calcule le CRR pas à pas pour un petit N et retourne
+    toutes les données nécessaires à la visualisation.
     """
 
     # ========================================================
@@ -105,7 +106,7 @@ def crr_step_by_step(
     )
 
     # ========================================================
-    # 2. CONSTRUCTION DE L'ARBRE DU SOUS-JACENT
+    # 2. ARBRE DU SOUS-JACENT
     # ========================================================
 
     stock_tree = []
@@ -142,6 +143,7 @@ def crr_step_by_step(
     # ========================================================
 
     values = []
+    maturity_payoffs = []
 
     print(
         "\n========== PAYOFFS À MATURITÉ =========="
@@ -156,6 +158,7 @@ def crr_step_by_step(
             payoff = max(K - S, 0)
 
         values.append(payoff)
+        maturity_payoffs.append(payoff)
 
     print(
         "Payoffs :",
@@ -170,6 +173,17 @@ def crr_step_by_step(
         "\n========== BACKWARD INDUCTION =========="
     )
 
+    option_tree = [
+        [None for _ in level]
+        for level in stock_tree
+    ]
+
+    # Valeurs à maturité
+    for j, payoff in enumerate(maturity_payoffs):
+        option_tree[N_small][j] = payoff
+
+    backward_steps = []
+
     for i in range(
         N_small - 1,
         -1,
@@ -177,20 +191,21 @@ def crr_step_by_step(
     ):
 
         new_values = []
+        current_period = []
 
         for j in range(i + 1):
 
             S = stock_tree[i][j]
 
-            # Valeur de continuation
             continuation = discount * (
                 p * values[j + 1]
                 + q * values[j]
             )
 
-            # =================================================
-            # OPTION EUROPEENNE
-            # =================================================
+            if option_type == "call":
+                exercise = max(S - K, 0)
+            else:
+                exercise = max(K - S, 0)
 
             if exercise_type == "european":
 
@@ -203,17 +218,7 @@ def crr_step_by_step(
                     f"valeur={value:.6f}"
                 )
 
-            # =================================================
-            # OPTION AMERICAINE
-            # =================================================
-
             else:
-
-                if option_type == "call":
-                    exercise = max(S - K, 0)
-
-                else:
-                    exercise = max(K - S, 0)
 
                 value = max(
                     exercise,
@@ -228,18 +233,33 @@ def crr_step_by_step(
                     f"valeur={value:.6f}"
                 )
 
+            option_tree[i][j] = value
+
+            current_period.append({
+                "period": i,
+                "node": j,
+                "stock": S,
+                "continuation": continuation,
+                "exercise": exercise,
+                "value": value
+            })
+
             new_values.append(value)
+
+        backward_steps.append(current_period)
 
         values = new_values
 
+    backward_steps.reverse()
+
     # ========================================================
-    # 5. PRIX CRR PETIT N
+    # 5. PRIX PETIT N
     # ========================================================
 
     price_small = values[0]
 
     # ========================================================
-    # 6. PRIX CRR GRAND N
+    # 6. PRIX GRAND N
     # ========================================================
 
     price_large = crr_price(
@@ -281,12 +301,32 @@ def crr_step_by_step(
     )
 
     # ========================================================
-    # RESULTATS
+    # RESULTATS POUR FLASK
     # ========================================================
 
     return {
+
+        "N_small": N_small,
+        "N_large": N_large,
+
+        "parameters": {
+            "dt": dt,
+            "u": u,
+            "d": d,
+            "p": p,
+            "q": q,
+            "discount": discount
+        },
+
+        "stock_tree": stock_tree,
+
+        "maturity_payoffs": maturity_payoffs,
+
+        "option_tree": option_tree,
+
+        "backward_steps": backward_steps,
+
         "price_small": price_small,
         "price_large": price_large,
-        "difference": difference,
-        "stock_tree": stock_tree
+        "difference": difference
     }

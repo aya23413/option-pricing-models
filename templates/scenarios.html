@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scénarios de marché · PricingLab</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-icon">P</div>
+
+            <div>
+                <div class="brand-name">PricingLab</div>
+                <div class="brand-subtitle">Finance quantitative</div>
+            </div>
+        </div>
+
+        <div class="menu-title">ANALYSE</div>
+
+        <nav class="navigation">
+
+            <a
+                href="{{ url_for('index') }}"
+                class="nav-item"
+            >
+                <span class="nav-icon">◈</span>
+                Valorisation
+            </a>
+
+            <a
+                href="{{ url_for('convergence') }}"
+                class="nav-item"
+            >
+                <span class="nav-icon">↗</span>
+                Convergence
+            </a>
+
+            <a
+                href="{{ url_for('scenarios') }}"
+                class="nav-item active"
+            >
+                <span class="nav-icon">◫</span>
+                Scénarios de marché
+            </a>
+
+        </nav>
+
+        <div class="sidebar-info">
+            <div class="sidebar-info-title">Scénarios étudiés</div>
+            <div class="model-small">Volatilité</div>
+            <div class="model-small">Position dans la monnaie</div>
+            <div class="model-small">Maturité</div>
+        </div>
+
+    </aside>
+
+
+    <main class="main-content">
+
+        <header class="page-header">
+
+            <div>
+                <div class="page-label">CONDITIONS DE MARCHÉ</div>
+
+                <h1>Scénarios de marché</h1>
+
+                <p class="page-description">
+                    Comparez les modèles dans plusieurs configurations
+                    de volatilité, de maturité et de position dans la monnaie.
+                </p>
+            </div>
+
+            <div class="status">
+                <span class="status-dot"></span>
+                Moteur de calcul prêt
+            </div>
+
+        </header>
+
+
+        {% if error_message %}
+
+        <div class="error-box">
+            <div class="error-icon">!</div>
+
+            <div>
+                <strong>Impossible d'effectuer l'analyse</strong>
+                <p>{{ error_message }}</p>
+            </div>
+        </div>
+
+        {% endif %}
+
+
+        <section class="card parameters-card">
+
+            <div class="section-header">
+                <div>
+                    <h2>Configuration de l'analyse</h2>
+                    <p>
+                        Choisissez le type d'option, le style d'exercice
+                        et le nombre de pas.
+                    </p>
+                </div>
+            </div>
+
+
+            <form method="POST">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label>Nombre de pas</label>
+                        <div class="input-wrapper">
+                            <input
+                                type="number"
+                                name="N"
+                                step="1"
+                                min="1"
+                                value="{{ form_data.N }}"
+                                required
+                            >
+                            <span class="input-unit">N</span>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="choices-container">
+
+                    <div class="choice-block">
+                        <div class="choice-label">Type d'option</div>
+
+                        <div class="segmented-control">
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="option_type"
+                                    value="call"
+                                    {% if form_data.option_type == "call" %}checked{% endif %}
+                                >
+                                <span>Call</span>
+                            </label>
+
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="option_type"
+                                    value="put"
+                                    {% if form_data.option_type == "put" %}checked{% endif %}
+                                >
+                                <span>Put</span>
+                            </label>
+                        </div>
+                    </div>
+
+
+                    <div class="choice-block">
+                        <div class="choice-label">Style d'exercice</div>
+
+                        <div class="segmented-control">
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="exercise_type"
+                                    value="european"
+                                    {% if form_data.exercise_type == "european" %}checked{% endif %}
+                                >
+                                <span>Européenne</span>
+                            </label>
+
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="exercise_type"
+                                    value="american"
+                                    {% if form_data.exercise_type == "american" %}checked{% endif %}
+                                >
+                                <span>Américaine</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <button type="submit" class="calculate-button">
+                    Analyser les scénarios
+                </button>
+
+            </form>
+
+        </section>
+
+
+        {% if results %}
+
+            <section class="results-section">
+
+                <div class="results-header">
+                    <div>
+                        <h2>Résultats par scénario</h2>
+                        <p>
+                            Sept configurations de marché comparées
+                            avec les quatre modèles.
+                        </p>
+                    </div>
+
+                    <div class="option-badge">
+                        {{ form_data.option_type | upper }}
+                        ·
+                        {{ "EUROPÉENNE" if form_data.exercise_type == "european" else "AMÉRICAINE" }}
+                    </div>
+                </div>
+
+
+                <div class="scenario-summary-grid">
+
+                    {% for scenario_name, scenario_rows in results.items() %}
+
+                    <article class="scenario-summary-card">
+                        <div class="scenario-name">
+                            {{ scenario_name }}
+                        </div>
+
+                        <div class="scenario-models">
+                            {% for row in scenario_rows %}
+                            <div>
+                                <span>{{ row["Méthode"] }}</span>
+                                <strong>
+                                    {{ "%.4f"|format(row["Prix"]) }}
+                                </strong>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </article>
+
+                    {% endfor %}
+
+                </div>
+
+            </section>
+
+
+
+            <div
+                id="scenario-data"
+                data-results='{{ results | tojson | forceescape }}'
+                hidden>
+            </div>
+
+            <script>
+                const scenarioElement =
+                    document.getElementById("scenario-data");
+
+                const scenarioData =
+                    JSON.parse(scenarioElement.dataset.results);
+
+                const scenarioNames =
+                    Object.keys(scenarioData);
+
+                const methods = [
+                    "CRR",
+                    "Jarrow-Rudd",
+                    "Tian",
+                    "Boyle"
+                ];
+
+                const chartColors = {
+                    "CRR": "#3157d5",
+                    "Jarrow-Rudd": "#16a36a",
+                    "Tian": "#d97706",
+                    "Boyle": "#8b5cf6"
+                };
+
+                function getValue(scenario, method, key) {
+                    const row =
+                        scenarioData[scenario].find(
+                            item => item["Méthode"] === method
+                        );
+
+                    return row ? row[key] : null;
+                }
+
+
+                new Chart(
+                    document.getElementById("scenarioPriceChart"),
+                    {
+                        type: "line",
+                        data: {
+                            labels: scenarioNames,
+                            datasets:
+                                methods.map(method => ({
+                                    label: method,
+                                    data:
+                                        scenarioNames.map(
+                                            scenario =>
+                                                getValue(
+                                                    scenario,
+                                                    method,
+                                                    "Prix"
+                                                )
+                                        ),
+                                    borderColor:
+                                        chartColors[method],
+                                    backgroundColor:
+                                        chartColors[method],
+                                    pointRadius: 5,
+                                    tension: 0.2,
+                                    fill: false
+                                }))
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: "bottom"
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: "Scénarios de marché"
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: "Prix de l'option"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+
+
+                new Chart(
+                    document.getElementById("scenarioTimeChart"),
+                    {
+                        type: "bar",
+                        data: {
+                            labels: scenarioNames,
+                            datasets:
+                                methods.map(method => ({
+                                    label: method,
+                                    data:
+                                        scenarioNames.map(
+                                            scenario =>
+                                                getValue(
+                                                    scenario,
+                                                    method,
+                                                    "Temps"
+                                                ) * 1000
+                                        ),
+                                    backgroundColor:
+                                        chartColors[method]
+                                }))
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: "bottom"
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: "Scénarios de marché"
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: "Temps médian (ms)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+            </script>
+
+        {% else %}
+
+            <section class="empty-state">
+                <div class="empty-icon">◫</div>
+
+                <h2>Analyse des scénarios</h2>
+
+                <p>
+                    Sélectionnez le type d'option et le style d'exercice,
+                    puis lancez l'analyse des conditions de marché.
+                </p>
+            </section>
+
+        {% endif %}
+
+
+        <footer>
+            PricingLab · Analyse quantitative des options vanilles
+        </footer>
+
+    </main>
+
+</div>
+
+</body>
+</html>
